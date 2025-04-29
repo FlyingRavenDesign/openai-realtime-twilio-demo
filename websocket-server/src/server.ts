@@ -45,24 +45,22 @@ app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.all("/twiml", (req, res) => {
-  try {
-    // gate-keeper
-    if (!ALLOWED_CALLERS.includes(req.body.From || "")) {
-      return res.type("text/xml").send("<Response><Reject/></Response>");
-    }
+// 3. gatekeeper route
+app.post("/twiml", (req, res) => {          // ← path string first
+  const caller = req.body?.From || "";
 
-    const ws = new URL(process.env.PUBLIC_URL!);
-    ws.protocol = "wss:"; ws.pathname = "/call";
-
-    return res
-      .type("text/xml")
-      .send(twimlTemplate.replace("{{WS_URL}}", ws.toString()));
-  } catch (err) {
-    console.error("TwiML error:", err);
-    // send *tiny* safe fallback so Twilio never gets >64 KB
-    return res.type("text/xml").send("<Response><Say>Oops</Say></Response>");
+  if (!ALLOWED_CALLERS.includes(caller)) {
+    res.type("text/xml").send('<Response><Reject/></Response>');
+    return;                                 // ← arrow fn returns void
   }
+
+  const ws = new URL(process.env.PUBLIC_URL!);
+  ws.protocol = "wss:";
+  ws.pathname = "/call";
+
+  res
+    .type("text/xml")
+    .send(twimlTemplate.replace("{{WS_URL}}", ws.toString()));
 });
 
 // New endpoint to list available tools (schemas)
