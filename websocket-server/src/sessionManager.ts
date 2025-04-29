@@ -1,6 +1,11 @@
 import { RawData, WebSocket } from "ws";
 import functions from "./functionHandlers";
 
+// ─── 1.  add near the other consts ────────────────────────────────
+const MODEL = process.env.OPENAI_MODEL || "gpt-4o-realtime-preview-2024-12-17";
+const VOICE = process.env.OPENAI_VOICE || "ash";
+
+
 interface Session {
   twilioConn?: WebSocket;
   frontendConn?: WebSocket;
@@ -121,7 +126,7 @@ function tryConnectModel() {
   if (isOpen(session.modelConn)) return;
 
   session.modelConn = new WebSocket(
-    "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
+    `wss://api.openai.com/v1/realtime?model=${MODEL}`,       // ← was hard-coded
     {
       headers: {
         Authorization: `Bearer ${session.openAIApiKey}`,
@@ -130,6 +135,7 @@ function tryConnectModel() {
     }
   );
 
+
   session.modelConn.on("open", () => {
     const config = session.saved_config || {};
     jsonSend(session.modelConn, {
@@ -137,7 +143,7 @@ function tryConnectModel() {
       session: {
         modalities: ["text", "audio"],
         turn_detection: { type: "server_vad" },
-        voice: "ash",
+        voice: VOICE,                                          // ← was "ash"
         input_audio_transcription: { model: "whisper-1" },
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
