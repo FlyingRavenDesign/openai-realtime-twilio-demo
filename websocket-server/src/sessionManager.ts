@@ -138,6 +138,8 @@ function tryConnectModel() {
 
 
   session.modelConn.on("open", () => {
+    console.log("✅ Realtime WS is OPEN");            // <── heartbeat
+
     const config = session.saved_config || {};
   
     const updatePayload = {
