@@ -1,4 +1,5 @@
 import express from "express";
+import type { RequestHandler } from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import dotenv from "dotenv";
@@ -30,11 +31,11 @@ if (!OPENAI_API_KEY) {
 }
 
 const app = express();
+app.use(express.urlencoded({ extended: false }));
+
 app.use(cors());
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-
-app.use(express.urlencoded({ extended: false }));
 
 const twimlPath = join(__dirname, "twiml.xml");
 const twimlTemplate = readFileSync(twimlPath, "utf-8");
@@ -43,10 +44,11 @@ app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.all("/twiml", (req, res) => {              // ① path string first
-  const caller = (req.body.From || "") as string;
+/* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
+const twimlGate: RequestHandler = (req, res) => {
+  const caller = (req.body?.From || "") as string;
 
-  if (!ALLOWED_CALLERS.includes(caller)) {      // ② gatekeeper
+  if (!ALLOWED_CALLERS.includes(caller)) {
     return res
       .type("text/xml")
       .send('<Response><Reject reason="rejected"/></Response>');
@@ -57,8 +59,11 @@ app.all("/twiml", (req, res) => {              // ① path string first
   ws.pathname = "/call";
 
   const xml = twimlTemplate.replace("{{WS_URL}}", ws.toString());
-  res.type("text/xml").send(xml);               // ③ normal flow
-});
+  res.type("text/xml").send(xml);
+};
+
+app.post("/twiml", twimlGate);          // ① path string first, handler second
+/* ────────────────────────────────────────────────────────────────── */
 
 // New endpoint to list available tools (schemas)
 app.get("/tools", (req, res) => {
