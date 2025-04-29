@@ -7,6 +7,7 @@ const functions: FunctionHandler[] = [];
 functions.push({
   schema: {
     name: "get_weather_from_coords",
+    type: "function",
     description: "Get the current weather",
     parameters: {
       type: "object",
@@ -30,6 +31,7 @@ functions.push({
 functions.push({
   schema: {
     name: "live_search",
+    type: "function",
     description: "Search the public web and return up-to-date results",
     parameters: {
       type: "object",
