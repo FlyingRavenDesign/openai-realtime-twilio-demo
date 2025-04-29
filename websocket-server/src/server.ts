@@ -33,15 +33,31 @@ app.use(express.urlencoded({ extended: false }));
 const twimlPath = join(__dirname, "twiml.xml");
 const twimlTemplate = readFileSync(twimlPath, "utf-8");
 
+// top of file, after the other consts
+const ALLOWED_CALLERS = (process.env.ALLOWED_CALLERS || "")
+  .split(",")
+  .filter(Boolean);
+
+// ...
+
 app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
 app.all("/twiml", (req, res) => {
+  const caller = (req.body?.From || req.query?.From || "").toString();   // Twilio passes E.164 in “From” [oai_citation_attribution:3‡Twilio](https://www.twilio.com/docs/serverless/functions-assets/quickstart/receive-call?utm_source=chatgpt.com)
+
+  // reject anyone not on the list
+  if (!ALLOWED_CALLERS.includes(caller)) {
+    return res
+      .type("text/xml")
+      .send('<Response><Reject reason="rejected"/></Response>');
+  }
+
+  // existing code that injects WS_URL into the template
   const wsUrl = new URL(PUBLIC_URL);
   wsUrl.protocol = "wss:";
-  wsUrl.pathname = `/call`;
-
+  wsUrl.pathname = "/call";
   const twimlContent = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
   res.type("text/xml").send(twimlContent);
 });
