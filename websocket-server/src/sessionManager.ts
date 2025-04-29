@@ -139,6 +139,19 @@ function tryConnectModel() {
 
   session.modelConn.on("open", () => {
     const config = session.saved_config || {};
+    // ---------- STEP 1 :  add the function schema -----------------
+    const liveSearchSchema = {
+      name: "live_search",
+      description: "Search the public web and return up-to-date results",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to search for" }
+        },
+        required: ["query"]
+      }
+    };
+    // --------------------------------------------------------------
     jsonSend(session.modelConn, {
       type: "session.update",
       session: {
@@ -148,6 +161,8 @@ function tryConnectModel() {
         input_audio_transcription: { model: "whisper-1" },
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
+        tools: [liveSearchSchema],  //  ←  add this line
+
         ...config,
       },
     });
@@ -163,7 +178,27 @@ function handleModelMessage(data: RawData) {
   if (!event) return;
 
   jsonSend(session.frontendConn, event);
-
+  // ───── STEP 2: fulfil live_search tool-calls ─────────────
+  if (event.type === "tool_call" && event.name === "live_search") {
+    bingSearch(event.args.query, 3)
+      .then(results => {
+        jsonSend(session.modelConn!, {
+          type: "tool",
+          id: event.id,          // echo the tool_call id
+          content: results       // JSON string from search.ts
+        });
+      })
+      .catch(err => {
+        console.error("Bing search failed", err);
+        jsonSend(session.modelConn!, {
+          type: "tool",
+          id: event.id,
+          content: "ERROR: search failed"
+        });
+      });
+    return;                        // wait for model’s next messages
+  }
+  // ──────────────────────────────────────────────────────────
   switch (event.type) {
     case "input_audio_buffer.speech_started":
       handleTruncation();
