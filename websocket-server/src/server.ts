@@ -1,3 +1,4 @@
+import express, { Request, Response } from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import dotenv from "dotenv";
@@ -11,15 +12,6 @@ import {
 } from "./sessionManager";
 import functions from "./functionHandlers";
 
-
-// ─── src/server.ts ──────────────────────────────────────────────────────────
-import express, { Request, Response } from "express";
-
-const ALLOWED_CALLERS =
-  (process.env.ALLOWED_CALLERS || "").split(",").filter(Boolean);
-
-
-
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || "8081", 10);
@@ -32,27 +24,32 @@ if (!OPENAI_API_KEY) {
 }
 
 const app = express();
-app.use(express.urlencoded({ extended: false }));      // Twilio sends form-urlencoded
+app.use(cors());
+app.use(express.urlencoded({ extended: false }));   // ← needed for Twilio’s form POST
 app.use(express.json());
 
-app.use(cors());
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-app.use(express.urlencoded({ extended: false }));
+/* ───── 🔐  ALLOW-LIST  ───────────────────────────────────────────── */
+const ALLOWED_CALLERS =
+  (process.env.ALLOWED_CALLERS || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+/* ────────────────────────────────────────────────────────────────── */
+
+
 
 const twimlPath = join(__dirname, "twiml.xml");
-const twimlTemplate = readFileSync(
-  join(__dirname, "twiml.xml"),
-  "utf8"
-);
+const twimlTemplate = readFileSync(twimlPath, "utf-8");
+
+
 app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-// ---------------------------------------------------------------------------
-//  ONLY WHITELISTED CALLER IDS GET THROUGH TO GPT
-// ---------------------------------------------------------------------------
+/* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
 app.all("/twiml", (req: Request, res: Response) => {
   const caller = (req.body?.From || req.query?.From || "") as string;
 
@@ -62,14 +59,14 @@ app.all("/twiml", (req: Request, res: Response) => {
       .send('<Response><Reject reason="rejected"/></Response>');
   }
 
-  const wsUrl = new URL(process.env.PUBLIC_URL!);
-  wsUrl.protocol = "wss:";
-  wsUrl.pathname = "/call";
+  const ws = new URL(process.env.PUBLIC_URL!);
+  ws.protocol = "wss:";
+  ws.pathname = "/call";
 
-  const xml = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
+  const xml = twimlTemplate.replace("{{WS_URL}}", ws.toString());
   res.type("text/xml").send(xml);
 });
-// ---------------------------------------------------------------------------
+/* ────────────────────────────────────────────────────────────────── */
 
 // New endpoint to list available tools (schemas)
 app.get("/tools", (req, res) => {
@@ -106,3 +103,5 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+export default app;
