@@ -140,7 +140,7 @@ function tryConnectModel() {
   session.modelConn.on("open", () => {
     const config = session.saved_config || {};
   
-    jsonSend(session.modelConn, {
+    const updatePayload = {
       type: "session.update",
       session: {
         modalities: ["text", "audio"],
@@ -149,31 +149,31 @@ function tryConnectModel() {
         input_audio_transcription: { model: "whisper-1" },
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
-  
-        // merge any custom front-end settings first …
         ...config,
-  
-        // … then expose the tool list (so config can’t overwrite it)
         tools: functions.map(({ schema }) => ({
           name:        schema.name,
           description: schema.description,
-          parameters:  schema.parameters          // drop .type
+          parameters:  schema.parameters
         }))
       }
-    });
+    };
+    /** LOG what you’re sending */
+    console.log("➡️  SEND", JSON.stringify(updatePayload));
+    jsonSend(session.modelConn, updatePayload);
   
-    // system instruction that tells the model when to use the tool
-    jsonSend(session.modelConn, {
+    const sysPrompt = {
       type: "conversation.item.create",
       item: {
         role: "system",
         type: "text",
         content:
-          "You have a tool called `live_search`. "
-          + "Whenever the user needs current information, call `live_search` "
-          + "with a concise query, then answer using the results."
+          "You have a tool called live_search. "
+          + "Whenever the user needs current information, call it with a concise query."
       }
-    });
+    };
+    /** LOG the system prompt */
+    console.log("➡️  SEND", JSON.stringify(sysPrompt));
+    jsonSend(session.modelConn, sysPrompt);
   });
 
   session.modelConn.on("message", handleModelMessage);
@@ -185,7 +185,10 @@ function handleModelMessage(data: RawData) {
   const event = parseMessage(data);
   if (!event) return;
 
-  jsonSend(session.frontendConn, event);
+  /** LOG every inbound event */
+  console.log("⬅️  RECV", JSON.stringify(event));
+
+  jsonSend(session.frontendConn, event);   // keep the original line
 
   switch (event.type) {
     case "input_audio_buffer.speech_started":
