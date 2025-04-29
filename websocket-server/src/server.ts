@@ -50,7 +50,12 @@ app.get("/public-url", (req, res) => {
 });
 
 /* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
-app.all("/twiml", (req, res) => {
+
+/**
+ * Accept the call only if From is in ALLOWED_CALLERS.
+ * Otherwise return <Reject/> so Twilio hangs up immediately.
+ */
+app.all("/twiml", (req, res) => {               // ← 1️⃣ keep the path string first
   const caller = (req.body?.From || req.query?.From || "") as string;
 
   if (!ALLOWED_CALLERS.includes(caller)) {
