@@ -2,8 +2,8 @@ import { RawData, WebSocket } from "ws";
 import functions from "./functionHandlers";
 
 // ─── 1.  add near the other consts ────────────────────────────────
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o-realtime-preview-2024-12-17";
-const VOICE = process.env.OPENAI_VOICE || "ash";
+const MODEL = process.env.OPEN_AI_MODEL || "gpt-4o-realtime-preview-2024-12-17";
+const VOICE = process.env.OPEN_AI_VOICE || "ash";
 
 
 interface Session {
