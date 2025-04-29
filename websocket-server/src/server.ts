@@ -44,8 +44,7 @@ app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-/* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
-const twimlGate: RequestHandler = (req, res) => {
+app.post("/twiml", (req, res) => {
   const caller = (req.body?.From || "") as string;
 
   if (!ALLOWED_CALLERS.includes(caller)) {
@@ -58,12 +57,10 @@ const twimlGate: RequestHandler = (req, res) => {
   ws.protocol = "wss:";
   ws.pathname = "/call";
 
-  const xml = twimlTemplate.replace("{{WS_URL}}", ws.toString());
-  res.type("text/xml").send(xml);
-};
-
-app.post("/twiml", twimlGate);          // ① path string first, handler second
-/* ────────────────────────────────────────────────────────────────── */
+  res
+    .type("text/xml")
+    .send(twimlTemplate.replace("{{WS_URL}}", ws.toString()));
+});
 
 // New endpoint to list available tools (schemas)
 app.get("/tools", (req, res) => {
