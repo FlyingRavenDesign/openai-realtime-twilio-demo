@@ -1,5 +1,3 @@
-import type { Request, Response } from "express";
-import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import dotenv from "dotenv";
@@ -16,8 +14,6 @@ import functions from "./functionHandlers";
 
 // ─── src/server.ts ──────────────────────────────────────────────────────────
 import express, { Request, Response } from "express";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 const ALLOWED_CALLERS =
   (process.env.ALLOWED_CALLERS || "").split(",").filter(Boolean);
