@@ -139,21 +139,37 @@ function tryConnectModel() {
 
   session.modelConn.on("open", () => {
     const config = session.saved_config || {};
-
+  
     jsonSend(session.modelConn, {
       type: "session.update",
       session: {
         modalities: ["text", "audio"],
         turn_detection: { type: "server_vad" },
-        voice: VOICE,                                          // ← was "ash"
+        voice: VOICE,
         input_audio_transcription: { model: "whisper-1" },
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
-
+  
+        // merge any custom front-end settings first …
         ...config,
-      },
+  
+        // … then expose the tool list (so config can’t overwrite it)
+        tools: functions.map(f => f.schema)
+      }
     });
-
+  
+    // system instruction that tells the model when to use the tool
+    jsonSend(session.modelConn, {
+      type: "conversation.item.create",
+      item: {
+        role: "system",
+        type: "text",
+        content:
+          "You have a tool called `live_search`. "
+          + "Whenever the user needs current information, call `live_search` "
+          + "with a concise query, then answer using the results."
+      }
+    });
   });
 
   session.modelConn.on("message", handleModelMessage);
