@@ -154,7 +154,11 @@ function tryConnectModel() {
         ...config,
   
         // … then expose the tool list (so config can’t overwrite it)
-        tools: functions.map(f => f.schema)
+        tools: functions.map(({ schema }) => ({
+          name:        schema.name,
+          description: schema.description,
+          parameters:  schema.parameters          // drop .type
+        }))
       }
     });
   
