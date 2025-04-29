@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import dotenv from "dotenv";
@@ -25,53 +25,26 @@ if (!OPENAI_API_KEY) {
 
 const app = express();
 app.use(cors());
-app.use(express.urlencoded({ extended: false }));   // ← needed for Twilio’s form POST
-app.use(express.json());
-
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-/* ───── 🔐  ALLOW-LIST  ───────────────────────────────────────────── */
-const ALLOWED_CALLERS =
-  (process.env.ALLOWED_CALLERS || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
-/* ────────────────────────────────────────────────────────────────── */
-
-
+app.use(express.urlencoded({ extended: false }));
 
 const twimlPath = join(__dirname, "twiml.xml");
 const twimlTemplate = readFileSync(twimlPath, "utf-8");
-
 
 app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-/* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
+app.all("/twiml", (req, res) => {
+  const wsUrl = new URL(PUBLIC_URL);
+  wsUrl.protocol = "wss:";
+  wsUrl.pathname = `/call`;
 
-/**
- * Accept the call only if From is in ALLOWED_CALLERS.
- * Otherwise return <Reject/> so Twilio hangs up immediately.
- */
-app.all("/twiml", (req, res) => {               // ← 1️⃣ keep the path string first
-  const caller = (req.body?.From || req.query?.From || "") as string;
-
-  if (!ALLOWED_CALLERS.includes(caller)) {
-    return res
-      .type("text/xml")
-      .send('<Response><Reject reason="rejected"/></Response>');
-  }
-
-  const ws = new URL(process.env.PUBLIC_URL!);
-  ws.protocol = "wss:";
-  ws.pathname = "/call";
-
-  const xml = twimlTemplate.replace("{{WS_URL}}", ws.toString());
-  res.type("text/xml").send(xml);
+  const twimlContent = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
+  res.type("text/xml").send(twimlContent);
 });
-/* ────────────────────────────────────────────────────────────────── */
 
 // New endpoint to list available tools (schemas)
 app.get("/tools", (req, res) => {
@@ -108,5 +81,3 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-export default app;
