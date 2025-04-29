@@ -151,11 +151,11 @@ function tryConnectModel() {
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
         ...config,
-        tools: functions.map(({ schema }) => ({
-          name:        schema.name,
-          description: schema.description,
-          parameters:  schema.parameters
-        }))
+        //tools: functions.map(({ schema }) => ({
+        //  name:        schema.name,
+        //  description: schema.description,
+        //  parameters:  schema.parameters
+        //}))
       }
     };
   });
