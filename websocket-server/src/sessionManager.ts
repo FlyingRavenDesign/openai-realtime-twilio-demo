@@ -153,6 +153,19 @@ function tryConnectModel() {
         ...config,
       },
     });
+    // 2️⃣  **Add your system prompt here**
+    jsonSend(session.modelConn, {
+      type: "conversation.item.create",
+      item: {
+        type: "text",
+        role: "system",
+        content:
+          "You are a helpful assistant with access to the tool `live_search`. "
+          + "When the user asks a question that requires current information "
+          + "or factual verification, call the tool `live_search` with an "
+          + "appropriate query, then answer using the results."
+      }
+    });
   });
 
   session.modelConn.on("message", handleModelMessage);
