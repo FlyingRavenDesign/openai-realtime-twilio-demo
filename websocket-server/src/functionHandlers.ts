@@ -1,4 +1,5 @@
 import { FunctionHandler } from "./types";
+import { bingSearch } from "./search";
 
 const functions: FunctionHandler[] = [];
 
@@ -29,5 +30,23 @@ functions.push({
     return JSON.stringify({ temp: currentTemp });
   },
 });
+
+functions.push({
+  schema: {
+    name: "live_search",
+    description: "Search the public web and return up-to-date results",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "What to search for" }
+      },
+      required: ["query"]
+    }
+  },
+  handler: async ({ query }: { query: string }) => {
+    return await bingSearch(query, 3);       // returns JSON string
+  }
+});
+               
 
 export default functions;
