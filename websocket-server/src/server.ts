@@ -1,5 +1,4 @@
 import express from "express";
-import type { RequestHandler } from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import dotenv from "dotenv";
@@ -19,38 +18,40 @@ const PORT = parseInt(process.env.PORT || "8081", 10);
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
-const ALLOWED_CALLERS =
-  (process.env.ALLOWED_CALLERS || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
-
 if (!OPENAI_API_KEY) {
   console.error("OPENAI_API_KEY environment variable is required");
   process.exit(1);
 }
 
 const app = express();
-app.use(express.urlencoded({ extended: false }));
-
 app.use(cors());
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+app.use(express.urlencoded({ extended: false }));
+
 const twimlPath = join(__dirname, "twiml.xml");
 const twimlTemplate = readFileSync(twimlPath, "utf-8");
+
+// 2. caller allow-list
+const ALLOWED_CALLERS =
+  (process.env.ALLOWED_CALLERS || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
 
 app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.post("/twiml", (req, res) => {
-  const caller = (req.body?.From || "") as string;
+// 3. gatekeeper route
+app.post("/twiml", (req, res) => {          // ← path string first
+  const caller = req.body?.From || "";
 
   if (!ALLOWED_CALLERS.includes(caller)) {
-    return res
-      .type("text/xml")
-      .send('<Response><Reject reason="rejected"/></Response>');
+    res.type("text/xml").send('<Response><Reject/></Response>');
+    return;                                 // ← arrow fn returns void
   }
 
   const ws = new URL(process.env.PUBLIC_URL!);
