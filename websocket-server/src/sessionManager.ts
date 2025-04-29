@@ -148,8 +148,8 @@ function tryConnectModel() {
         turn_detection: { type: "server_vad" },
         voice: VOICE,
         input_audio_transcription: { model: "whisper-1" },
-        input_audio_format: "g711_ulaw",
-        output_audio_format: "g711_ulaw",
+        input_audio_format: "mulaw",
+        output_audio_format: "mulaw",
         ...config,
         //tools: functions.map(({ schema }) => ({
         //  name:        schema.name,
