@@ -50,7 +50,7 @@ app.get("/public-url", (req, res) => {
 });
 
 /* ───── 🛂  GATEKEEPER ROUTE  ────────────────────────────────────── */
-app.all("/twiml", (req: Request, res: Response) => {
+app.all("/twiml", (req, res) => {
   const caller = (req.body?.From || req.query?.From || "") as string;
 
   if (!ALLOWED_CALLERS.includes(caller)) {
