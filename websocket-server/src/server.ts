@@ -18,6 +18,12 @@ const PORT = parseInt(process.env.PORT || "8081", 10);
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
+const ALLOWED_CALLERS =
+  (process.env.ALLOWED_CALLERS || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
 if (!OPENAI_API_KEY) {
   console.error("OPENAI_API_KEY environment variable is required");
   process.exit(1);
@@ -37,13 +43,21 @@ app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.all("/twiml", (req, res) => {
-  const wsUrl = new URL(PUBLIC_URL);
-  wsUrl.protocol = "wss:";
-  wsUrl.pathname = `/call`;
+app.all("/twiml", (req, res) => {              // ① path string first
+  const caller = (req.body.From || "") as string;
 
-  const twimlContent = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
-  res.type("text/xml").send(twimlContent);
+  if (!ALLOWED_CALLERS.includes(caller)) {      // ② gatekeeper
+    return res
+      .type("text/xml")
+      .send('<Response><Reject reason="rejected"/></Response>');
+  }
+
+  const ws = new URL(process.env.PUBLIC_URL!);
+  ws.protocol = "wss:";
+  ws.pathname = "/call";
+
+  const xml = twimlTemplate.replace("{{WS_URL}}", ws.toString());
+  res.type("text/xml").send(xml);               // ③ normal flow
 });
 
 // New endpoint to list available tools (schemas)
