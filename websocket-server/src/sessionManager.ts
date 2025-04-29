@@ -4,7 +4,7 @@ import functions from "./functionHandlers";
 
 // ─── 1.  add near the other consts ────────────────────────────────
 const MODEL = "gpt-4o-realtime-preview-2024-12-17";
-const VOICE = "alloy";
+const VOICE = "ash";
 
 
 interface Session {
