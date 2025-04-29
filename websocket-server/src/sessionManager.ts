@@ -1,4 +1,5 @@
 import { RawData, WebSocket } from "ws";
+import { bingSearch } from "./search";
 import functions from "./functionHandlers";
 
 // ─── 1.  add near the other consts ────────────────────────────────
