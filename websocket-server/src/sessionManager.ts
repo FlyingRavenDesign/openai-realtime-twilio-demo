@@ -159,23 +159,6 @@ function tryConnectModel() {
         }))
       }
     };
-    /** LOG what you’re sending */
-    console.log("➡️  SEND", JSON.stringify(updatePayload));
-    jsonSend(session.modelConn, updatePayload);
-  
-    const sysPrompt = {
-      type: "conversation.item.create",
-      item: {
-        role: "system",
-        type: "text",
-        content:
-          "You have a tool called live_search. "
-          + "Whenever the user needs current information, call it with a concise query."
-      }
-    };
-    /** LOG the system prompt */
-    console.log("➡️  SEND", JSON.stringify(sysPrompt));
-    jsonSend(session.modelConn, sysPrompt);
   });
 
   session.modelConn.on("message", handleModelMessage);
