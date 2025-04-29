@@ -45,7 +45,7 @@ app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.all("/twiml", (req, res, next) => {
+app.all("/twiml", (req, res) => {
   try {
     // gate-keeper
     if (!ALLOWED_CALLERS.includes(req.body.From || "")) {
