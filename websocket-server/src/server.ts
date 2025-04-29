@@ -46,7 +46,7 @@ app.get("/public-url", (req, res) => {
 });
 
 // 3. gatekeeper route
-app.post("/twiml", (req, res) => {          // ← path string first
+app.all("/twiml", (req, res) => {          // ← path string first
   const caller = req.body?.From || "";
 
   if (!ALLOWED_CALLERS.includes(caller)) {
