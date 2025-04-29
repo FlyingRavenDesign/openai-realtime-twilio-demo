@@ -13,6 +13,17 @@ import {
 } from "./sessionManager";
 import functions from "./functionHandlers";
 
+
+// ─── src/server.ts ──────────────────────────────────────────────────────────
+import express, { Request, Response } from "express";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const ALLOWED_CALLERS =
+  (process.env.ALLOWED_CALLERS || "").split(",").filter(Boolean);
+
+
+
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || "8081", 10);
@@ -25,6 +36,9 @@ if (!OPENAI_API_KEY) {
 }
 
 const app = express();
+app.use(express.urlencoded({ extended: false }));      // Twilio sends form-urlencoded
+app.use(express.json());
+
 app.use(cors());
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -32,20 +46,18 @@ const wss = new WebSocketServer({ server });
 app.use(express.urlencoded({ extended: false }));
 
 const twimlPath = join(__dirname, "twiml.xml");
-const twimlTemplate = readFileSync(twimlPath, "utf-8");
-
-// top of file, after the other consts
-const ALLOWED_CALLERS = (process.env.ALLOWED_CALLERS || "")
-  .split(",")
-  .filter(Boolean);
-
-// ...
-
+const twimlTemplate = readFileSync(
+  join(__dirname, "twiml.xml"),
+  "utf8"
+);
 app.get("/public-url", (req, res) => {
   res.json({ publicUrl: PUBLIC_URL });
 });
 
-app.all("/twiml", (req: Request, res: Response) => {      // ✅ path first
+// ---------------------------------------------------------------------------
+//  ONLY WHITELISTED CALLER IDS GET THROUGH TO GPT
+// ---------------------------------------------------------------------------
+app.all("/twiml", (req: Request, res: Response) => {
   const caller = (req.body?.From || req.query?.From || "") as string;
 
   if (!ALLOWED_CALLERS.includes(caller)) {
@@ -58,9 +70,10 @@ app.all("/twiml", (req: Request, res: Response) => {      // ✅ path first
   wsUrl.protocol = "wss:";
   wsUrl.pathname = "/call";
 
-  const twimlContent = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
-  res.type("text/xml").send(twimlContent);
+  const xml = twimlTemplate.replace("{{WS_URL}}", wsUrl.toString());
+  res.type("text/xml").send(xml);
 });
+// ---------------------------------------------------------------------------
 
 // New endpoint to list available tools (schemas)
 app.get("/tools", (req, res) => {
